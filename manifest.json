@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.audio",
+  "name": "Audio Pulse",
+  "version": "1.0.0",
+  "author": "Fred Nix",
+  "license": "MIT",
+  "description": "A living audio chip: volume, mute, output picker and per-app mixer, drawn as a sibling of RAM Pulse, CPU Pulse and Net Pulse.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Audio Pulse",
+    "description": "Animated audio chip with volume, mute, output picker and per-app mixer. Scroll the chip to change volume; right-click mutes.",
+    "category": "Audio",
+    "allowMultiple": false
+  },
+  "omarchy": {
+    "clonedFrom": "omarchy.audio"
+  }
+}
