@@ -18,21 +18,32 @@ Item {
     property real shownLevel: level
     implicitWidth: compact ? 34 : 160
     implicitHeight: compact ? 25 : 160
-    Behavior on shownLevel { NumberAnimation { duration: 1200; easing.type: Easing.InOutCubic } }
-    Behavior on tint { ColorAnimation { duration: 1100 } }
-    NumberAnimation on phase { from: 0; to: 1; duration: 5800; loops: Animation.Infinite; running: root.animate }
-    onPhaseChanged: canvas.requestPaint()
-    onTintChanged: canvas.requestPaint()
-    onShownLevelChanged: canvas.requestPaint()
-    onKindChanged: canvas.requestPaint()
-    onActivityChanged: canvas.requestPaint()
-    onMutedChanged: canvas.requestPaint()
-    onAnimateChanged: canvas.requestPaint()
+    // One phase revolution every 5.8s, advanced by the repaint tick itself.
+    readonly property real phaseStep: tick.interval / 5800
+    // Every repaint is coalesced onto this single 10Hz tick, and nothing is
+    // painted while the chip is off screen. An infinite NumberAnimation on
+    // phase drove the canvas at display refresh rate instead, and the
+    // shownLevel and tint Behaviors kept doing the same through every
+    // transition even when animation was switched off.
+    Timer {
+        id: tick
+        interval: 100; repeat: true
+        running: root.animate && root.visible
+        onTriggered: { root.phase = (root.phase + root.phaseStep) % 1; canvas.requestPaint() }
+    }
+    function repaint() { if (root.visible) canvas.requestPaint() }
+    onTintChanged: repaint()
+    onShownLevelChanged: repaint()
+    onKindChanged: repaint()
+    onActivityChanged: repaint()
+    onMutedChanged: repaint()
+    onAnimateChanged: repaint()
+    onVisibleChanged: repaint()
     Canvas {
         id: canvas
         anchors.fill: parent
-        onWidthChanged: requestPaint()
-        onHeightChanged: requestPaint()
+        onWidthChanged: root.repaint()
+        onHeightChanged: root.repaint()
         onPaint: {
             var c = getContext('2d'), w = width, h = height
             c.reset(); c.clearRect(0,0,w,h)
