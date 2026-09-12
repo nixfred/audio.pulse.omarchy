@@ -666,10 +666,14 @@ Panel {
       root.showVolumeOsd(volume)
     }
 
+    // The reading lives inside the chip: one mark, no text column, roughly
+    // half the bar width of the old chip-plus-two-lines layout. The output
+    // kind and mute state still read from the mark and its slash, and the
+    // full "Audio Pulse · 45% · Speakers" wording stays in the tooltip.
     Row {
       id: barRow
       anchors.centerIn: parent
-      spacing: 4
+      spacing: 0
       AudioChip {
         compact: true
         kind: root.chipKind
@@ -677,25 +681,10 @@ Panel {
         activity: root.chipActivity
         muted: root.outputMuted || !root.hasOutput
         tint: root.tint
+        readout: root.hasOutput ? Model.volumeReadout(root.outputVolume).replace("%", "") : "—"
+        textColor: root.barForeground
+        fontFamily: Style.font.family
         animate: root.setting("animated", true) && root.hasOutput && !root.outputMuted
-      }
-      Column {
-        anchors.verticalCenter: parent.verticalCenter
-        Text {
-          text: root.hasOutput ? Model.volumeReadout(root.outputVolume) : "—"
-          color: root.barForeground
-          font.family: Style.font.family
-          font.pixelSize: 12
-          font.bold: true
-          textFormat: Text.PlainText
-        }
-        Text {
-          text: Model.barTag(root.outputMuted || !root.hasOutput, root.chipKind)
-          color: root.tint
-          font.pixelSize: 7
-          font.letterSpacing: 0.8
-          textFormat: Text.PlainText
-        }
       }
     }
   }

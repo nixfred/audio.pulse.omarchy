@@ -13,10 +13,12 @@
 An animated speaker for the Omarchy top bar. Same Pulse colour language as [RAM Pulse](https://github.com/nixfred/ram.plugin.omarchy), [CPU Pulse](https://github.com/nixfred/omacpu) and [Net Pulse](https://github.com/nixfred/omanet.plugin.omarchy), mapped to loudness: green at full volume, yellow at half, muted grey. 100% is alive, not an alarm.
 
 <p align="center">
-  <img src="docs/chip.png" alt="Compact Audio Pulse speaker showing 100% VOL" width="280">
+  <img src="docs/chip.png" alt="Compact Audio Pulse speaker with 100 read out inside the mark" width="280">
 </p>
 
 The mark follows the selected sink: speaker cone, headphone cups, HDMI display, or extra wireless arcs. Sound rings and a waveform track volume.
+
+In the bar the mark and the volume share one widget: the mark keeps the left lane, the digits the right, and neither is drawn over the other. That is roughly half the width of the old chip-plus-two-line-column layout, and both stay readable against every theme tint. Mute is still the slash, and the output name stays in the tooltip.
 
 Left-click opens the mixer. Right-click mutes. Scroll changes volume. Everything else — output picker, input meter, per-app streams, keyboard cursor — is the stock audio panel, deliberately preserved.
 

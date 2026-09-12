@@ -14,9 +14,16 @@ Item {
     property bool animate: true
     property bool compact: false
     property color tint: "#43f2a1"
+    // When compact, the volume reading is painted inside the chip instead of
+    // sitting in a text column beside it, and the mark dims to a backdrop.
+    property string readout: ""
+    property color textColor: tint
+    property string fontFamily: ""
+    readonly property bool insetReadout: compact && readout.length > 0
+    readonly property real textLuma: 0.299 * textColor.r + 0.587 * textColor.g + 0.114 * textColor.b
     property real phase: 0
     property real shownLevel: level
-    implicitWidth: compact ? 34 : 160
+    implicitWidth: compact ? (insetReadout ? (readout.length > 2 ? 46 : 40) : 34) : 160
     implicitHeight: compact ? 25 : 160
     // One phase revolution every 5.8s, advanced by the repaint tick itself.
     readonly property real phaseStep: tick.interval / 5800
@@ -38,7 +45,25 @@ Item {
     onActivityChanged: repaint()
     onMutedChanged: repaint()
     onAnimateChanged: repaint()
+    onReadoutChanged: repaint()
     onVisibleChanged: repaint()
+    Text {
+        anchors.right: parent.right
+        anchors.rightMargin: 1
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.insetReadout
+        text: root.readout
+        color: root.textColor
+        // A faint outline only, for the case where the mark's aura bleeds
+        // under the digits at high volume.
+        style: Text.Outline
+        styleColor: root.textLuma > 0.5 ? Qt.rgba(0, 0, 0, 0.55) : Qt.rgba(1, 1, 1, 0.55)
+        font.family: root.fontFamily.length > 0 ? root.fontFamily : font.family
+        font.bold: true
+        font.pixelSize: Math.max(10, Math.round(root.height * 0.5))
+        textFormat: Text.PlainText
+        z: 1
+    }
     Canvas {
         id: canvas
         anchors.fill: parent
@@ -48,13 +73,18 @@ Item {
             var c = getContext('2d'), w = width, h = height
             c.reset(); c.clearRect(0,0,w,h)
             if (w <= 0 || h <= 0) return
-            var cx=w/2, cy=h/2, size=Math.min(w,h)
+            // With a readout the mark takes the left lane and the digits the
+            // right, so neither is drawn over the other. Overlaying them meant
+            // whichever was on top hid the other whatever the colours were.
+            var cx=root.insetReadout?w*0.22:w/2, cy=h/2
+            var size=Math.min(w,h)*(root.insetReadout?0.62:1)
             var t=root.phase*Math.PI*2
             var lvl=Model.clamp(root.shownLevel,0,1)
             var act=Model.clamp(root.muted ? 0 : root.activity,0,1)
             var live=root.muted ? 0 : lvl
             var aura=c.createRadialGradient(cx,cy,size*0.08,cx,cy,size*0.55)
-            aura.addColorStop(0,Qt.alpha(root.tint,0.38+0.28*live)); aura.addColorStop(0.62,Qt.alpha(root.tint,0.16+0.08*Math.sin(t))); aura.addColorStop(1,'transparent')
+            var glow=root.insetReadout?0.7:1.0
+            aura.addColorStop(0,Qt.alpha(root.tint,(0.38+0.28*live)*glow)); aura.addColorStop(0.62,Qt.alpha(root.tint,(0.16+0.08*Math.sin(t))*glow)); aura.addColorStop(1,'transparent')
             c.fillStyle=aura; c.fillRect(0,0,w,h)
             if (!root.compact) {
                 for(var ring=0;ring<3;ring++) {
@@ -136,6 +166,7 @@ Item {
                     c.fillRect(bx-barW/2,base-bh,barW,Math.max(2,bh))
                 }
             }
+            c.globalAlpha=1
             if (root.muted || root.kind === 'none') {
                 c.strokeStyle=Qt.alpha(root.tint,0.95); c.lineWidth=root.compact?2:3.2; c.lineCap='round'
                 c.beginPath(); c.moveTo(cx-s*0.32, cy-s*0.32); c.lineTo(cx+s*0.32, cy+s*0.32); c.stroke()
