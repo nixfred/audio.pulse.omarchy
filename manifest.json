@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "pi.audio",
   "name": "Audio Pulse",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": "Fred Nix",
   "license": "MIT",
   "description": "A living audio chip: volume, mute, output picker and per-app mixer, drawn as a sibling of RAM Pulse, CPU Pulse and Net Pulse.",

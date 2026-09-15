@@ -196,6 +196,11 @@ Panel {
   readonly property var outputNode: hasOutput ? volumeSink : sink
   readonly property string outputName: Model.outputName(outputNode)
   readonly property bool blipEnabled: setting("volumeBlip", true)
+  // The same short click desktops play for volume feedback. It goes to the
+  // default output, so it comes out at the new level on the device named in
+  // the card: you hear how loud it is and where it is playing from.
+  readonly property bool pingEnabled: setting("volumeSound", true)
+  readonly property string pingSound: "/usr/share/sounds/freedesktop/stereo/audio-volume-change.oga"
   property bool blipArmed: false
   property bool blipOpen: false
   property int blipLastPercent: -1
@@ -223,7 +228,11 @@ Panel {
     blipLastPercent = percent
     blipLastMuted = outputMuted
     blipLastName = outputName
-    if (!changed || !blipArmed || !blipEnabled || !hasOutput) return
+    if (!changed || !blipArmed || !hasOutput) return
+    // A held key steps the volume every repeat; a click still playing is left
+    // to finish rather than stacking a new one on top of it.
+    if (pingEnabled && !outputMuted && !pingProc.running) pingProc.running = true
+    if (!blipEnabled) return
     blipOpen = true
     blipHideTimer.restart()
     stockOsdCloser.closes = 0
@@ -741,6 +750,11 @@ Panel {
     interval: 3000
     running: true
     onTriggered: root.blipArmed = true
+  }
+
+  Process {
+    id: pingProc
+    command: ["pw-play", root.pingSound]
   }
 
   Timer {
