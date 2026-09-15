@@ -69,6 +69,40 @@ function nodeLabel(node) {
   return friendlyDeviceLabel(node.description || p["node.description"] || node.name || "Unknown")
 }
 
+// The plain name a person would call an output, for the volume blip. PipeWire
+// descriptions are chipset strings ("800 Series Chipset Family Audio Context
+// Engine (ACE) Headphones"), so this reads what the device is rather than
+// what the driver calls it. Sonos rooms keep their room name and AirPods keep
+// their model; anything unrecognised falls back to the panel's own label.
+function outputName(node) {
+  if (!node) return "No output"
+  var p = nodeProps(node)
+  var name = String(node.name || p["node.name"] || "")
+  var desc = String(node.description || p["node.description"] || p["device.description"] || "")
+  var nick = String(node.nickname || p["node.nick"] || "")
+  var blob = [name, desc, nick, p["device.icon-name"] || "", p["device.api"] || ""].join(" ").toLowerCase()
+
+  var sonos = desc.match(/^(.+?)\s*\(Sonos[^)]*\)\s*$/i)
+  if (sonos) return sonos[1]
+  if (/^sonos\b/i.test(name)) return desc.replace(/\s*\(.*\)\s*$/, "") || "Sonos"
+
+  if (blob.indexOf("airpods pro") !== -1) return "AirPods Pro"
+  if (blob.indexOf("airpods max") !== -1) return "AirPods Max"
+  if (blob.indexOf("airpods") !== -1) return "AirPods"
+  if (name.indexOf("bluez_output") === 0 || blob.indexOf("bluez") !== -1 || blob.indexOf("bluetooth") !== -1)
+    return desc || nick || "Bluetooth"
+
+  if (blob.indexOf("hdmi") !== -1 || blob.indexOf("displayport") !== -1 || blob.indexOf("video-display") !== -1) {
+    var monitor = desc.match(/\[([^\]]+)\]\s*$/)
+    if (monitor) return monitor[1]
+    var port = desc.match(/(?:HDMI|DisplayPort)\D*(\d+)/i)
+    return port ? "HDMI " + port[1] : "HDMI"
+  }
+  if (blob.indexOf("headphone") !== -1 || blob.indexOf("headset") !== -1) return "Headphone Jack"
+  if (blob.indexOf("speaker") !== -1) return "Laptop Speakers"
+  return nodeLabel(node)
+}
+
 function isHeadphones(node) {
   if (!node) return false
   var p = nodeProps(node)
@@ -301,6 +335,7 @@ if (typeof module !== "undefined") {
     friendlyDeviceLabel: friendlyDeviceLabel,
     nodeProps: nodeProps,
     nodeLabel: nodeLabel,
+    outputName: outputName,
     isHeadphones: isHeadphones,
     clamp: clamp,
     hex2: hex2,

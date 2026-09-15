@@ -4,6 +4,8 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Mpris
 import Quickshell.Services.Pipewire
+import Quickshell.Wayland
+import Quickshell.Hyprland
 import qs.Ui
 import qs.Commons
 import "Model.js" as Model
@@ -185,6 +187,48 @@ Panel {
   }
   readonly property color tint: (!hasOutput || outputMuted) ? "#71838c" : Model.ramp(Model.loudness(outputVolume))
   readonly property string health: !hasOutput ? "NO OUTPUT" : outputMuted ? "MUTED" : outputVolumeName(outputVolume, false).toUpperCase()
+
+  // Volume blip. Any change to loudness, mute or the output device flashes a
+  // small card with the level and the device's plain name ("Laptop Speakers",
+  // "Living Room", "AirPods"). The volume keys run Omarchy's own script, whose OSD
+  // shows a bar or a message but never both, so the blip stands in for it and
+  // closes the stock card each time it opens.
+  readonly property var outputNode: hasOutput ? volumeSink : sink
+  readonly property string outputName: Model.outputName(outputNode)
+  readonly property bool blipEnabled: setting("volumeBlip", true)
+  property bool blipArmed: false
+  property bool blipOpen: false
+  property int blipLastPercent: -1
+  property bool blipLastMuted: false
+  property string blipLastName: ""
+
+  readonly property var focusedScreen: {
+    var monitor = Hyprland.focusedMonitor
+    var screens = Quickshell.screens
+    for (var i = 0; i < screens.length; i++)
+      if (monitor && screens[i].name === monitor.name) return screens[i]
+    return screens.length ? screens[0] : null
+  }
+
+  onOutputVolumeChanged: checkBlip()
+  onOutputMutedChanged: checkBlip()
+  onOutputNameChanged: checkBlip()
+
+  // Compares against the last shown state rather than trusting the change
+  // signals: PipeWire republishes nodes and the sink resolver re-runs every
+  // 15s, and neither of those should flash anything.
+  function checkBlip() {
+    var percent = Math.round(outputVolume * 100)
+    var changed = percent !== blipLastPercent || outputMuted !== blipLastMuted || outputName !== blipLastName
+    blipLastPercent = percent
+    blipLastMuted = outputMuted
+    blipLastName = outputName
+    if (!changed || !blipArmed || !blipEnabled || !hasOutput) return
+    blipOpen = true
+    blipHideTimer.restart()
+    stockOsdCloser.closes = 0
+    stockOsdCloser.restart()
+  }
   readonly property real openPanelIndicatorWidth: button.width - 12
 
   readonly property color hoverFill: bar
@@ -442,6 +486,8 @@ Panel {
   }
 
   function showVolumeOsd(volume) {
+    // Scrolling changes the volume, and that change already raises the blip.
+    if (blipEnabled) return
     if (!bar || !bar.shell) return
     bar.shell.summon("omarchy.osd", JSON.stringify({
       icon: outputIcon(volume),
@@ -685,6 +731,133 @@ Panel {
         textColor: root.barForeground
         fontFamily: Style.font.family
         animate: root.setting("animated", true) && root.hasOutput && !root.outputMuted
+      }
+    }
+  }
+
+  // Startup binds every node and resolves the physical sink, which reads as a
+  // run of volume and device changes. Nothing flashes until that has settled.
+  Timer {
+    interval: 3000
+    running: true
+    onTriggered: root.blipArmed = true
+  }
+
+  Timer {
+    id: blipHideTimer
+    interval: 1400
+    onTriggered: root.blipOpen = false
+  }
+
+  // The key script opens the stock OSD a beat after it changes the volume, so
+  // one close would usually land first and miss it. Keep closing briefly.
+  Timer {
+    id: stockOsdCloser
+    property int closes: 0
+    interval: 80
+    repeat: true
+    onTriggered: {
+      Quickshell.execDetached(["omarchy-shell", "-q", "osd", "close"])
+      closes += 1
+      if (closes >= 6) stop()
+    }
+  }
+
+  PanelWindow {
+    id: blipWindow
+    visible: root.blipOpen || blipCard.opacity > 0
+    screen: root.focusedScreen
+    anchors { top: true; bottom: true; left: true; right: true }
+    color: "transparent"
+    WlrLayershell.namespace: "audio-pulse-blip"
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+    exclusionMode: ExclusionMode.Ignore
+    // Visual only: never take a click from the desktop underneath.
+    mask: Region {}
+
+    BorderSurface {
+      id: blipCard
+      readonly property int pad: Style.space(14)
+      readonly property int trackWidth: Style.space(220)
+      width: blipCard.borderLeft + pad + blipRow.implicitWidth + pad + blipCard.borderRight
+      height: blipCard.borderTop + pad + blipRow.implicitHeight + pad + blipCard.borderBottom
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.bottom: parent.bottom
+      anchors.bottomMargin: Style.space(67)
+      color: Util.alpha(Color.background, 0.97)
+      borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
+      radius: Style.cornerRadius
+      opacity: root.blipOpen ? 1 : 0
+      Behavior on opacity { NumberAnimation { duration: 140 } }
+
+      Row {
+        id: blipRow
+        x: blipCard.borderLeft + blipCard.pad
+        y: blipCard.borderTop + blipCard.pad
+        spacing: Style.space(14)
+
+        AudioChip {
+          width: Style.space(58)
+          height: width
+          anchors.verticalCenter: parent.verticalCenter
+          kind: root.chipKind
+          level: root.chipLevel
+          activity: root.chipActivity
+          muted: root.outputMuted
+          tint: root.tint
+          animate: root.blipOpen && root.setting("animated", true) && !root.outputMuted
+        }
+
+        Column {
+          anchors.verticalCenter: parent.verticalCenter
+          spacing: Style.space(8)
+
+          Item {
+            width: blipCard.trackWidth
+            height: Math.max(blipName.implicitHeight, blipLevel.implicitHeight)
+            Text {
+              id: blipName
+              anchors.left: parent.left
+              anchors.right: blipLevel.left
+              anchors.rightMargin: Style.space(10)
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.outputName
+              color: Color.popups.text
+              font.family: Style.font.family
+              font.bold: true
+              font.pixelSize: Style.font.title
+              elide: Text.ElideRight
+              textFormat: Text.PlainText
+            }
+            Text {
+              id: blipLevel
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.outputMuted ? "Muted" : Model.volumeReadout(root.outputVolume)
+              color: root.tint
+              font.family: Style.font.family
+              font.bold: true
+              font.pixelSize: Style.font.title
+              textFormat: Text.PlainText
+            }
+          }
+
+          Rectangle {
+            width: blipCard.trackWidth
+            height: Math.max(Style.space(6), Style.spacing.sm)
+            color: Util.alpha(Color.popups.text, 0.25)
+            Rectangle {
+              height: parent.height
+              width: parent.width * (root.outputMuted ? 0 : Model.clamp(root.outputVolume, 0, 1))
+              color: root.tint
+              Behavior on width {
+                enabled: root.blipOpen
+                NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+              }
+            }
+          }
+        }
       }
     }
   }
