@@ -126,6 +126,9 @@ Panel {
   // Carry sub-notch touchpad deltas between wheel events.
   property real wheelAccumulator: 0
 
+  // When the last wheel notch landed, so a slow roll can step 1% and a spin 5%.
+  property real lastWheelMs: 0
+
   readonly property var volumeSink: {
     if (volumeSinkName === "" || !sink) return sink
     if (volumeSinkName === String(sink.name)) return sink
@@ -717,7 +720,13 @@ Panel {
       var wheel = Util.wheelSteps(root.wheelAccumulator, delta)
       root.wheelAccumulator = wheel.remainder
       if (wheel.steps === 0) return
-      var volume = root.setOutputVolume(root.outputVolume + wheel.steps * 0.05)
+      var now = Date.now()
+      var gap = root.lastWheelMs > 0 ? now - root.lastWheelMs : Infinity
+      root.lastWheelMs = now
+      // Land on whole percent so each notch moves the readout by exactly its
+      // step, even when another app left the level off the grid.
+      var percent = Math.round(root.outputVolume * 100) + wheel.steps * Model.wheelStepPercent(gap)
+      var volume = root.setOutputVolume(percent / 100)
       root.showVolumeOsd(volume)
     }
 

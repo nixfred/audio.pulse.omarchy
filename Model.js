@@ -325,6 +325,19 @@ function streamRepresentsPlayer(node, player, players, streams) {
   return streamRepresentsMprisPlayer(streamLabel(node, players, streams), playerLabel)
 }
 
+// A wheel notch moves the volume 1% when the wheel is being rolled slowly and
+// 5% when it is spun, ramping in whole percent between the two. gapMs is the
+// time since the previous notch; the first notch of a roll has no gap and is
+// therefore always the slow 1%, so a single tick is always fine-grained.
+function wheelStepPercent(gapMs) {
+  var slowGap = 220
+  var fastGap = 60
+  var gap = Number(gapMs)
+  if (!isFinite(gap) || gap >= slowGap) return 1
+  if (gap <= fastGap) return 5
+  return Math.round(1 + 4 * (slowGap - gap) / (slowGap - fastGap))
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     isPlaybackStream: isPlaybackStream,
@@ -342,6 +355,7 @@ if (typeof module !== "undefined") {
     ramp: ramp,
     loudness: loudness,
     volumeReadout: volumeReadout,
+    wheelStepPercent: wheelStepPercent,
     barTag: barTag,
     deviceBlob: deviceBlob,
     sinkKind: sinkKind,
