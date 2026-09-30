@@ -22,6 +22,8 @@ In the bar the mark and the volume share one widget: the mark keeps the left lan
 
 Left-click opens the mixer. Right-click mutes. Scroll changes volume: a slow roll moves 1% a notch, a fast spin 5%, ramping through the whole percents in between.
 
+Every control inside the panel is fine, 1% a step: the arrow keys and the mouse wheel over any slider in it, output, microphone or a per-app stream. The coarse 5% jumps live on the global volume keys, so the panel is where you settle a level rather than swing it.
+
 Inside the panel the arrow keys change role on a slider. Land on the microphone, the output level or a per-app stream and up/down trims that level 1% a press, while left/right walks the cursor off the row. On a device row both pairs move the cursor, as they always did. `m` mutes whatever the cursor is on, Enter picks a device, Esc closes.
 
 The panel never scrolls as a page. The hero spans the top and OUTPUT, INPUT and SOURCES sit side by side beneath it, one column each, so every header, slider and meter is on screen at once. The popup widens when the microphone or per-app streams appear instead of growing downwards, and it narrows back to a single column when they go away. Only the device lists scroll, each inside its own bounded box, and only once a list is longer than the column is tall.

@@ -1174,7 +1174,7 @@ Panel {
                   anchors.rightMargin: Style.space(6)
                   minimum: 0
                   maximum: 1
-                  step: 0.05
+                  step: 0.01  // fine: the coarse 5% lives on the global volume keys
                   value: root.outputVolume
                   opacity: root.outputMuted ? 0.5 : 1.0
                   enabled: !!root.sink
@@ -1294,7 +1294,7 @@ Panel {
                     width: parent.width
                     minimum: 0
                     maximum: 1
-                    step: 0.05
+                    step: 0.01  // fine: the coarse 5% lives on the global volume keys
                     value: root.inputVolume
                     opacity: root.inputMuted ? 0.5 : 1.0
                     enabled: !!root.source
@@ -1638,7 +1638,7 @@ Panel {
         width: parent.width
         minimum: 0
         maximum: 1.5
-        step: 0.05
+        step: 0.01  // fine: the coarse 5% lives on the global volume keys
         value: streamRow.streamVolume
         opacity: streamRow.streamMuted ? 0.5 : 1.0
 
