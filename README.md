@@ -22,6 +22,8 @@ In the bar the mark and the volume share one widget: the mark keeps the left lan
 
 Left-click opens the mixer. Right-click mutes. Scroll changes volume: a slow roll moves 1% a notch, a fast spin 5%, ramping through the whole percents in between.
 
+The panel never scrolls as a page. The hero spans the top and OUTPUT, INPUT and SOURCES sit side by side beneath it, one column each, so every header, slider and meter is on screen at once. The popup widens when the microphone or per-app streams appear instead of growing downwards, and it narrows back to a single column when they go away. Only the device lists scroll, each inside its own bounded box, and only once a list is longer than the column is tall.
+
 Every volume change flashes a small card at the bottom of the focused screen: the level, a bar, and where the sound is going in plain words. You see `Laptop Speakers`, `Headphone Jack`, `AirPods Pro`, a Sonos room such as `Living Room`, or a monitor such as `VA2756-UHD`, never the chipset string PipeWire reports. It fires for the volume keys, the scroll wheel, mute, and switching outputs. Omarchy's volume keys still open the stock OSD, so Audio Pulse closes that card the moment it appears, which can leave a brief flicker. Point your volume keys at a command that changes the level without calling `omarchy-osd` and the blip is the only popup. Each change also plays the short desktop volume click on the output itself, so you hear the new level from the device it names. Set `"volumeBlip": false` on the widget in `shell.json` to go back to the stock OSD, and `"volumeSound": false` to silence the click. Everything else — output picker, input meter, per-app streams, keyboard cursor — is the stock audio panel, deliberately preserved.
 
 <p align="center">
