@@ -342,18 +342,28 @@ Panel {
   // For device rows (selectedIndex >= 0 in output/input) h/l is a no-op
   // — the cursor is on a discrete row, not on the slider, and silently
   // moving the global slider would surprise the user.
-  function adjustVolume(delta) {
+  // True when the cursor is sitting on something with a slider: either
+  // section's own slider row, or a per-app stream, which carries its slider
+  // inline. On those rows the arrow keys swap roles -- see onMoveRequested.
+  // sectionHasSlider keeps INPUT honest: with no capture device there is no
+  // mic slider to land on, so up/down must stay navigation there.
+  readonly property bool cursorOnSlider: (selectedIndex === -1 && sectionHasSlider(focusSection))
+    || (focusSection === "streams" && selectedIndex >= 0 && selectedIndex < displayAudioStreams.length)
+
+  // deltaPercent is whole percent, so a press moves the readout by exactly
+  // that much rather than drifting off the grid.
+  function adjustVolume(deltaPercent) {
     if (focusSection === "output" && selectedIndex === -1) {
-      setOutputVolume(outputVolume + delta)
+      setOutputVolume(Model.steppedVolume(outputVolume, deltaPercent, 1))
       return
     }
     if (focusSection === "input" && selectedIndex === -1) {
-      setInputVolume(inputVolume + delta)
+      setInputVolume(Model.steppedVolume(inputVolume, deltaPercent, 1))
       return
     }
     if (focusSection === "streams" && selectedIndex >= 0 && selectedIndex < displayAudioStreams.length) {
       var s = displayAudioStreams[selectedIndex]
-      if (s && s.audio) s.audio.volume = Math.max(0, Math.min(1.5, s.audio.volume + delta))
+      if (s && s.audio) s.audio.volume = Model.steppedVolume(s.audio.volume, deltaPercent, 1.5)
     }
   }
 
@@ -919,8 +929,18 @@ Panel {
       anchors.fill: parent
       onMoveRequested: function(dx, dy) {
         if (!root.cursorActive) { root.cursorActive = true; return }
+        // On a slider row the vertical pair is the value -- up/down trims the
+        // focused level 1% a press, which is what you want when you have
+        // landed on the microphone. The horizontal pair then walks the cursor
+        // off the row, so the keyboard is never stranded on a slider.
+        // Everywhere else the vertical pair navigates, as it always has.
+        if (root.cursorOnSlider) {
+          if (dy !== 0) root.adjustVolume(-dy)
+          else if (dx !== 0) root.moveCursor(dx)
+          return
+        }
         if (dy !== 0) root.moveCursor(dy)
-        else if (dx !== 0) root.adjustVolume(dx * 0.05)
+        else if (dx !== 0) root.moveCursor(dx)
       }
       onActivateRequested: if (root.cursorActive) root.activateCursor()
       onCloseRequested: root.close()

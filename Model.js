@@ -329,6 +329,16 @@ function streamRepresentsPlayer(node, player, players, streams) {
 // 5% when it is spun, ramping in whole percent between the two. gapMs is the
 // time since the previous notch; the first notch of a roll has no gap and is
 // therefore always the slow 1%, so a single tick is always fine-grained.
+// Move a 0..1 volume by a whole number of percent, landing on the percent
+// grid so each key press moves the readout by exactly its step even when
+// another app left the level off the grid. max is 1 for devices, 1.5 for
+// per-app streams, which PipeWire lets run hot.
+function steppedVolume(current, deltaPercent, max) {
+  var ceiling = Number(max) > 0 ? Number(max) : 1
+  var pct = Math.round((Number(current) || 0) * 100) + (Number(deltaPercent) || 0)
+  return Math.max(0, Math.min(Math.round(ceiling * 100), pct)) / 100
+}
+
 function wheelStepPercent(gapMs) {
   var slowGap = 220
   var fastGap = 60
@@ -356,6 +366,7 @@ if (typeof module !== "undefined") {
     loudness: loudness,
     volumeReadout: volumeReadout,
     wheelStepPercent: wheelStepPercent,
+    steppedVolume: steppedVolume,
     barTag: barTag,
     deviceBlob: deviceBlob,
     sinkKind: sinkKind,
