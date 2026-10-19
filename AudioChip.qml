@@ -84,7 +84,7 @@ Item {
             var live=root.muted ? 0 : lvl
             var aura=c.createRadialGradient(cx,cy,size*0.08,cx,cy,size*0.55)
             var glow=root.insetReadout?0.7:1.0
-            aura.addColorStop(0,Qt.alpha(root.tint,(0.38+0.28*live)*glow)); aura.addColorStop(0.62,Qt.alpha(root.tint,(0.16+0.08*Math.sin(t))*glow)); aura.addColorStop(1,'transparent')
+            aura.addColorStop(0,Qt.alpha(root.tint,(0.38+0.28*live)*glow)); aura.addColorStop(0.62,Qt.alpha(root.tint,(0.16+0.08*Math.sin(t))*glow)); aura.addColorStop(1,Qt.rgba(0,0,0,0))
             c.fillStyle=aura; c.fillRect(0,0,w,h)
             if (!root.compact) {
                 for(var ring=0;ring<3;ring++) {

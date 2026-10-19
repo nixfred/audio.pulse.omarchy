@@ -9,6 +9,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.Ui
 import qs.Commons
+import qs.Commons as Commons
 import "Model.js" as Model
 
 Panel {
@@ -245,10 +246,10 @@ Panel {
   readonly property real openPanelIndicatorWidth: button.width - 12
 
   readonly property color hoverFill: bar
-    ? Style.hoverFillFor(bar.foreground, Color.accent)
+    ? Style.hoverFillFor(bar.foreground, Commons.Color.accent)
     : "transparent"
   readonly property color selectedFill: bar
-    ? Style.selectedFillFor(bar.foreground, Color.accent)
+    ? Style.selectedFillFor(bar.foreground, Commons.Color.accent)
     : "transparent"
 
   function sectionCount(section) {
@@ -833,8 +834,8 @@ Panel {
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.bottom: parent.bottom
       anchors.bottomMargin: Style.space(67)
-      color: Util.alpha(Color.background, 0.97)
-      borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
+      color: Util.alpha(Commons.Color.background, 0.97)
+      borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
       radius: Style.cornerRadius
       opacity: root.blipOpen ? 1 : 0
       Behavior on opacity { NumberAnimation { duration: 140 } }
@@ -871,7 +872,7 @@ Panel {
               anchors.rightMargin: Style.space(10)
               anchors.verticalCenter: parent.verticalCenter
               text: root.outputName
-              color: Color.popups.text
+              color: Commons.Color.popups.text
               font.family: Style.font.family
               font.bold: true
               font.pixelSize: Style.font.title
@@ -894,7 +895,7 @@ Panel {
           Rectangle {
             width: blipCard.trackWidth
             height: Math.max(Style.space(6), Style.spacing.sm)
-            color: Util.alpha(Color.popups.text, 0.25)
+            color: Util.alpha(Commons.Color.popups.text, 0.25)
             Rectangle {
               height: parent.height
               width: parent.width * (root.outputMuted ? 0 : Model.clamp(root.outputVolume, 0, 1))
